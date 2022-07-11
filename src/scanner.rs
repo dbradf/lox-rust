@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{token::{Token, Value}, token_type::TokenType};
-
+use crate::{
+    token::{Token, Value},
+    token_type::TokenType,
+};
 
 fn build_keyword_map() -> HashMap<String, TokenType> {
     let mut keywords = HashMap::new();
@@ -79,8 +81,7 @@ impl Scanner {
             '*' => self.add_token(TokenType::Star),
             '!' => {
                 let matched = self.match_char('=');
-                self.add_token(
-                    if matched {
+                self.add_token(if matched {
                     TokenType::BangEqual
                 } else {
                     TokenType::Bang
@@ -88,8 +89,7 @@ impl Scanner {
             }
             '=' => {
                 let matched = self.match_char('=');
-                self.add_token(
-                    if matched {
+                self.add_token(if matched {
                     TokenType::EqualEqual
                 } else {
                     TokenType::Equal
@@ -97,8 +97,7 @@ impl Scanner {
             }
             '<' => {
                 let matched = self.match_char('=');
-                self.add_token(
-                    if matched {
+                self.add_token(if matched {
                     TokenType::LessEqual
                 } else {
                     TokenType::Less
@@ -106,8 +105,7 @@ impl Scanner {
             }
             '>' => {
                 let matched = self.match_char('=');
-                self.add_token(
-                    if matched {
+                self.add_token(if matched {
                     TokenType::GreaterEqual
                 } else {
                     TokenType::Greater
@@ -135,7 +133,7 @@ impl Scanner {
                 } else if c.is_alphabetic() {
                     self.identifier();
                 }
-            },
+            }
         }
     }
 
@@ -170,7 +168,7 @@ impl Scanner {
         self.source.chars().nth(self.current).unwrap()
     }
 
-    fn advance(&mut self) -> char{
+    fn advance(&mut self) -> char {
         let ch = self.current_char();
         self.current += 1;
         ch
@@ -220,9 +218,14 @@ impl Scanner {
             }
         }
 
-        self.add_token_with_value(TokenType::Number, Value::Number(
-            *&self.source[self.start..self.current].parse::<f64>().unwrap()
-        ))
+        self.add_token_with_value(
+            TokenType::Number,
+            Value::Number(
+                *&self.source[self.start..self.current]
+                    .parse::<f64>()
+                    .unwrap(),
+            ),
+        )
     }
 
     fn identifier(&mut self) {
@@ -236,6 +239,5 @@ impl Scanner {
         } else {
             self.add_token(TokenType::Identifier);
         }
-
     }
 }
