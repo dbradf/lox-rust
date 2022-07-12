@@ -4,13 +4,14 @@ use ast_printer::AstPrinter;
 use parser::Parser;
 use scanner::Scanner;
 
-use crate::interpreter::Interpreter;
+use crate::interpreter::{interpret, Interpreter};
 
 mod ast_printer;
 mod expr;
 mod interpreter;
 mod parser;
 mod scanner;
+mod stmt;
 mod token;
 mod token_type;
 
@@ -44,10 +45,8 @@ fn run(source: &str) {
     let tokens = scanner.scan_tokens();
     let mut parser = Parser::new(tokens);
 
-    let expression = parser.parse();
-
-    println!("{}", expression.accept());
-    println!("{}", expression.evaluate());
+    let statements = parser.parse();
+    interpret(&statements);
 }
 
 fn error(line: usize, message: &str) {

@@ -1,7 +1,29 @@
-use crate::{expr::Expr, token::Value, token_type::TokenType};
+use crate::{expr::Expr, stmt::Stmt, token::Value, token_type::TokenType};
 
 pub trait Interpreter {
     fn evaluate(&self) -> Value;
+}
+
+pub fn interpret(statements: &[Stmt]) {
+    for statement in statements {
+        statement.evaluate();
+    }
+}
+
+impl Interpreter for Stmt {
+    fn evaluate(&self) -> Value {
+        match self {
+            Stmt::Expression { expression } => {
+                expression.evaluate();
+                Value::None
+            }
+            Stmt::Print { expression } => {
+                let value = expression.evaluate();
+                println!("{}", value);
+                Value::None
+            }
+        }
+    }
 }
 
 impl Interpreter for Expr {
@@ -18,7 +40,7 @@ impl Interpreter for Expr {
                 match operator.token_type {
                     TokenType::Plus => {
                         if let (Value::Number(l), Value::Number(r)) = (&left, &right) {
-                            return Value::Number(l - r);
+                            return Value::Number(l + r);
                         }
 
                         if let (Value::String(l), Value::String(r)) = (left, right) {

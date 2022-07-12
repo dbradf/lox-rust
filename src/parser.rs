@@ -1,5 +1,6 @@
 use crate::{
     expr::Expr,
+    stmt::Stmt,
     token::{Token, Value},
     token_type::TokenType,
 };
@@ -14,8 +15,32 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Expr {
-        self.expression()
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements = vec![];
+        while !self.is_at_end() {
+            statements.push(self.statement());
+        }
+        statements
+    }
+
+    fn statement(&mut self) -> Stmt {
+        if self.do_match(&[TokenType::Print]) {
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn print_statement(&mut self) -> Stmt {
+        let value = self.expression();
+        self.consume(TokenType::Semicolon, "Expect ';' after value.");
+        Stmt::Print { expression: value }
+    }
+
+    fn expression_statement(&mut self) -> Stmt {
+        let expr = self.expression();
+        self.consume(TokenType::Semicolon, "Expect ';' after expression.");
+        Stmt::Expression { expression: expr }
     }
 
     fn expression(&mut self) -> Expr {
