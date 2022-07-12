@@ -15,6 +15,8 @@ impl AstPrinter for Expr {
             Expr::Grouping { expression } => parenthesize("group", &vec![expression]),
             Expr::Literal { value } => value.to_string(),
             Expr::Unary { operator, right } => parenthesize(&operator.lexeme, &vec![right]),
+            Expr::Assign { name, value } => todo!(),
+            Expr::Variable { name } => todo!(),
         }
     }
 }

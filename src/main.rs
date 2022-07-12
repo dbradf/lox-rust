@@ -7,6 +7,7 @@ use scanner::Scanner;
 use crate::interpreter::{interpret, Interpreter};
 
 mod ast_printer;
+mod environment;
 mod expr;
 mod interpreter;
 mod parser;
@@ -17,7 +18,7 @@ mod token_type;
 
 fn main() {
     let mut args = std::env::args();
-    if args.len() > 1 {
+    if args.len() > 2 {
         eprintln!("Usage: lox [script]");
         std::process::exit(64);
     } else if args.len() == 2 {

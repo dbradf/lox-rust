@@ -18,17 +18,54 @@ impl Parser {
     pub fn parse(&mut self) -> Vec<Stmt> {
         let mut statements = vec![];
         while !self.is_at_end() {
-            statements.push(self.statement());
+            statements.push(self.declaration());
         }
         statements
+    }
+
+    fn declaration(&mut self) -> Stmt {
+        if self.do_match(&[TokenType::Var]) {
+            self.var_declaration()
+        } else {
+            self.statement()
+        }
+    }
+
+    fn var_declaration(&mut self) -> Stmt {
+        let name = self.consume(TokenType::Identifier, "Expect variable name.");
+        let mut initializer = None;
+        if self.do_match(&[TokenType::Equal]) {
+            initializer = Some(self.expression());
+        }
+
+        self.consume(
+            TokenType::Semicolon,
+            "Expect ';' after variable declaration.",
+        );
+        Stmt::Var { name, initializer }
     }
 
     fn statement(&mut self) -> Stmt {
         if self.do_match(&[TokenType::Print]) {
             self.print_statement()
+        } else if self.do_match(&[TokenType::LeftBrace]) {
+            Stmt::Block {
+                statements: self.block(),
+            }
         } else {
             self.expression_statement()
         }
+    }
+
+    fn block(&mut self) -> Vec<Stmt> {
+        let mut statements = vec![];
+
+        while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+            statements.push(self.declaration());
+        }
+
+        self.consume(TokenType::RightBrace, "Expect '}' after block.");
+        statements
     }
 
     fn print_statement(&mut self) -> Stmt {
@@ -44,7 +81,27 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Expr {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Expr {
+        let expr = self.equality();
+
+        if self.do_match(&[TokenType::Equal]) {
+            let equals = self.previous();
+            let value = self.assignment();
+
+            if let Expr::Variable { name } = expr {
+                return Expr::Assign {
+                    name,
+                    value: Box::new(value),
+                };
+            }
+
+            panic!("Invalid assignment target.");
+        }
+
+        expr
     }
 
     fn equality(&mut self) -> Expr {
@@ -139,6 +196,10 @@ impl Parser {
         } else if self.do_match(&[TokenType::Number, TokenType::String]) {
             Expr::Literal {
                 value: self.previous().literal,
+            }
+        } else if self.do_match(&[TokenType::Identifier]) {
+            Expr::Variable {
+                name: self.previous(),
             }
         } else if self.do_match(&[TokenType::LeftParen]) {
             let expr = self.expression();
