@@ -11,6 +11,30 @@ pub enum Value {
     None,
 }
 
+impl Value {
+    pub fn from_bool(b: bool) -> Self {
+        if b {
+            Self::True
+        } else {
+            Self::False
+        }
+    }
+
+    pub fn is_truthy(&self) -> bool {
+        !matches!(self, Value::None | Value::False)
+    }
+
+    pub fn is_equal(&self, other: &Value) -> bool {
+        if self == &Value::None && other == &Value::None {
+            true
+        } else if self == &Value::None {
+            false
+        } else {
+            self == other
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,

@@ -4,8 +4,11 @@ use ast_printer::AstPrinter;
 use parser::Parser;
 use scanner::Scanner;
 
+use crate::interpreter::Interpreter;
+
 mod ast_printer;
 mod expr;
+mod interpreter;
 mod parser;
 mod scanner;
 mod token;
@@ -39,11 +42,12 @@ fn run_prompt() {
 fn run(source: &str) {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens();
-
     let mut parser = Parser::new(tokens);
+
     let expression = parser.parse();
 
     println!("{}", expression.accept());
+    println!("{}", expression.evaluate());
 }
 
 fn error(line: usize, message: &str) {
