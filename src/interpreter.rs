@@ -1,11 +1,5 @@
-use std::os::macos::raw::stat;
-
 use crate::{
-    environment::{self, Environment},
-    expr::Expr,
-    stmt::Stmt,
-    token::Value,
-    token_type::TokenType,
+    environment::Environment, expr::Expr, stmt::Stmt, token::Value, token_type::TokenType,
 };
 
 pub trait Interpreter {
@@ -48,6 +42,18 @@ impl Interpreter for Stmt {
             Stmt::Block { statements } => {
                 let mut new_environment = Environment::new(Some(Box::new(environment.clone())));
                 execute_block(statements, &mut new_environment);
+                Value::None
+            }
+            Stmt::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                if condition.evaluate(environment).is_truthy() {
+                    then_branch.evaluate(environment);
+                } else if let Some(else_branch) = else_branch {
+                    else_branch.evaluate(environment);
+                }
                 Value::None
             }
         }
@@ -145,6 +151,23 @@ impl Interpreter for Expr {
                 let value = value.evaluate(environment);
                 environment.assign(name, value.clone());
                 value
+            }
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => {
+                let left = left.evaluate(environment);
+
+                if operator.token_type == TokenType::Or {
+                    if left.is_truthy() {
+                        return left;
+                    }
+                } else if !left.is_truthy() {
+                    return left;
+                }
+
+                right.evaluate(environment)
             }
         }
     }

@@ -17,6 +17,11 @@ impl AstPrinter for Expr {
             Expr::Unary { operator, right } => parenthesize(&operator.lexeme, &vec![right]),
             Expr::Assign { name, value } => todo!(),
             Expr::Variable { name } => todo!(),
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => todo!(),
         }
     }
 }
