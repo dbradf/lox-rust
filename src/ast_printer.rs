@@ -22,6 +22,11 @@ impl AstPrinter for Expr {
                 operator,
                 right,
             } => todo!(),
+            Expr::Call {
+                callee,
+                paren,
+                arguments,
+            } => todo!(),
         }
     }
 }

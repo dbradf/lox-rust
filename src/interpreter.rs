@@ -1,19 +1,42 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    environment::Environment, expr::Expr, stmt::Stmt, token::Value, token_type::TokenType,
+    built_in::register_builtins, environment::Environment, expr::Expr, stmt::Stmt, token::Value,
+    token_type::TokenType,
 };
 
-pub trait Interpreter {
+pub struct Interpreter {
+    globals: Environment,
+}
+
+impl Interpreter {
+    pub fn new() -> Self {
+        let mut environment = Environment::new(None);
+        register_builtins(&mut environment);
+
+        Self {
+            globals: environment,
+        }
+    }
+
+    pub fn interpret(&self, statements: &[Stmt]) {
+        let environment = Rc::new(RefCell::new(self.globals.clone()));
+        for statement in statements {
+            statement.evaluate(environment.clone());
+        }
+    }
+}
+
+trait Interpretable {
     fn evaluate(&self, environment: Rc<RefCell<Environment>>) -> Value;
 }
 
-pub fn interpret(statements: &[Stmt]) {
-    let environment = Rc::new(RefCell::new(Environment::new(None)));
-    for statement in statements {
-        statement.evaluate(environment.clone());
-    }
-}
+// pub fn interpret(statements: &[Stmt]) {
+//     let environment = Rc::new(RefCell::new(Environment::new(None)));
+//     for statement in statements {
+//         statement.evaluate(environment.clone());
+//     }
+// }
 
 fn execute_block(statements: &Vec<Stmt>, environment: Rc<RefCell<Environment>>) {
     for statement in statements {
@@ -21,7 +44,7 @@ fn execute_block(statements: &Vec<Stmt>, environment: Rc<RefCell<Environment>>) 
     }
 }
 
-impl Interpreter for Stmt {
+impl Interpretable for Stmt {
     fn evaluate(&self, environment: Rc<RefCell<Environment>>) -> Value {
         match self {
             Stmt::Expression { expression } => {
@@ -68,7 +91,7 @@ impl Interpreter for Stmt {
     }
 }
 
-impl Interpreter for Expr {
+impl Interpretable for Expr {
     fn evaluate(&self, environment: Rc<RefCell<Environment>>) -> Value {
         match self {
             Expr::Binary {
@@ -176,6 +199,25 @@ impl Interpreter for Expr {
                 }
 
                 right.evaluate(environment)
+            }
+            Expr::Call {
+                callee,
+                paren,
+                arguments,
+            } => {
+                let callee = callee.evaluate(environment.clone());
+
+                let argument_list: Vec<Value> = arguments
+                    .iter()
+                    .map(|a| a.evaluate(environment.clone()))
+                    .collect();
+
+                if let Value::Callable(callable) = callee {
+                    // return callable.call(interpreter, &argument_list)
+                    return callable.call();
+                }
+
+                panic!("Syntax error");
             }
         }
     }

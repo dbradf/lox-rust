@@ -1,11 +1,12 @@
 use std::fmt::Display;
 
-use crate::token_type::TokenType;
+use crate::{lox_callable::LoxCallable, token_type::TokenType};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum Value {
     String(String),
     Number(f64),
+    Callable(LoxCallable),
     True,
     False,
     None,
@@ -35,7 +36,7 @@ impl Value {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
@@ -51,6 +52,7 @@ impl Display for Value {
             Value::None => f.write_str("nil"),
             Value::True => f.write_str("true"),
             Value::False => f.write_str("false"),
+            Value::Callable(_) => f.write_str("function"),
         }
     }
 }

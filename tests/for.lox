@@ -1,8 +1,16 @@
 var a = 0;
 var temp;
 
-for (var b = 1; a < 100000; b = temp + b) {
+var start = clock();
+
+for (var b = 1; a < 1000000; b = temp + b) {
     print a;
     temp = a;
     a = b;
 }
+
+var end = clock();
+print "Time Taken:";
+print end;
+print end - start;
+

@@ -4,12 +4,14 @@ use ast_printer::AstPrinter;
 use parser::Parser;
 use scanner::Scanner;
 
-use crate::interpreter::{interpret, Interpreter};
+use crate::interpreter::Interpreter;
 
 mod ast_printer;
+mod built_in;
 mod environment;
 mod expr;
 mod interpreter;
+mod lox_callable;
 mod parser;
 mod scanner;
 mod stmt;
@@ -47,7 +49,8 @@ fn run(source: &str) {
     let mut parser = Parser::new(tokens);
 
     let statements = parser.parse();
-    interpret(&statements);
+    let interpreter = Interpreter::new();
+    interpreter.interpret(&statements);
 }
 
 fn error(line: usize, message: &str) {
