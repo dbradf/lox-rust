@@ -9,15 +9,13 @@ pub enum LoxCallable {
 pub struct BuiltInFunction {
     pub name: String,
     pub arity: usize,
-    // func: fn(&Interpreter, &[Value]) -> Value,
-    pub func: fn() -> Value,
+    pub func: fn(&Interpreter, &[Value]) -> Value,
 }
 
 impl LoxCallable {
-    // pub fn call(&self, interpreter: &Interpreter, arguments: &[Value]) -> Value {
-    pub fn call(&self) -> Value {
+    pub fn call(&self, interpreter: &Interpreter, arguments: &[Value]) -> Value {
         match self {
-            LoxCallable::BuiltIn(callable) => (callable.func)(),
+            LoxCallable::BuiltIn(callable) => (callable.func)(interpreter, arguments),
         }
     }
 }

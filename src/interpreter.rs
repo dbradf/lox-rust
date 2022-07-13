@@ -22,85 +22,70 @@ impl Interpreter {
     pub fn interpret(&self, statements: &[Stmt]) {
         let environment = Rc::new(RefCell::new(self.globals.clone()));
         for statement in statements {
-            statement.evaluate(environment.clone());
+            self.visit_statement(statement, environment.clone());
         }
     }
-}
 
-trait Interpretable {
-    fn evaluate(&self, environment: Rc<RefCell<Environment>>) -> Value;
-}
-
-// pub fn interpret(statements: &[Stmt]) {
-//     let environment = Rc::new(RefCell::new(Environment::new(None)));
-//     for statement in statements {
-//         statement.evaluate(environment.clone());
-//     }
-// }
-
-fn execute_block(statements: &Vec<Stmt>, environment: Rc<RefCell<Environment>>) {
-    for statement in statements {
-        statement.evaluate(environment.clone());
+    fn execute_block(&self, statements: &Vec<Stmt>, environment: Rc<RefCell<Environment>>) {
+        for statement in statements {
+            self.visit_statement(statement, environment.clone());
+        }
     }
-}
 
-impl Interpretable for Stmt {
-    fn evaluate(&self, environment: Rc<RefCell<Environment>>) -> Value {
-        match self {
+    fn visit_statement(&self, statement: &Stmt, environment: Rc<RefCell<Environment>>) {
+        match statement {
             Stmt::Expression { expression } => {
-                expression.evaluate(environment);
-                Value::None
+                self.visit_expression(expression, environment);
             }
             Stmt::Print { expression } => {
-                let value = expression.evaluate(environment);
+                let value = self.visit_expression(expression, environment);
                 println!("{}", value);
-                Value::None
             }
             Stmt::Var { name, initializer } => {
                 let mut value = Value::None;
                 if let Some(init) = initializer {
-                    value = init.evaluate(environment.clone());
+                    value = self.visit_expression(init, environment.clone());
                 }
                 environment.borrow_mut().define(name.lexeme.clone(), value);
-                Value::None
             }
             Stmt::Block { statements } => {
                 let new_environment = Environment::new(Some(environment));
-                execute_block(statements, Rc::new(RefCell::new(new_environment)));
-                Value::None
+                self.execute_block(statements, Rc::new(RefCell::new(new_environment)));
             }
             Stmt::If {
                 condition,
                 then_branch,
                 else_branch,
             } => {
-                if condition.evaluate(environment.clone()).is_truthy() {
-                    then_branch.evaluate(environment);
+                if self
+                    .visit_expression(condition, environment.clone())
+                    .is_truthy()
+                {
+                    self.visit_statement(then_branch, environment);
                 } else if let Some(else_branch) = else_branch {
-                    else_branch.evaluate(environment);
+                    self.visit_statement(else_branch, environment);
                 }
-                Value::None
             }
             Stmt::While { condition, body } => {
-                while condition.evaluate(environment.clone()).is_truthy() {
-                    body.evaluate(environment.clone());
+                while self
+                    .visit_expression(condition, environment.clone())
+                    .is_truthy()
+                {
+                    self.visit_statement(body, environment.clone());
                 }
-                Value::None
             }
         }
     }
-}
 
-impl Interpretable for Expr {
-    fn evaluate(&self, environment: Rc<RefCell<Environment>>) -> Value {
-        match self {
+    fn visit_expression(&self, expression: &Expr, environment: Rc<RefCell<Environment>>) -> Value {
+        match expression {
             Expr::Binary {
                 left,
                 operator,
                 right,
             } => {
-                let left = left.evaluate(environment.clone());
-                let right = right.evaluate(environment);
+                let left = self.visit_expression(left, environment.clone());
+                let right = self.visit_expression(right, environment);
 
                 match operator.token_type {
                     TokenType::Plus => {
@@ -161,10 +146,10 @@ impl Interpretable for Expr {
                     _ => panic!("Invalid syntax"),
                 }
             }
-            Expr::Grouping { expression } => expression.evaluate(environment),
+            Expr::Grouping { expression } => self.visit_expression(expression, environment),
             Expr::Literal { value } => value.clone(),
             Expr::Unary { operator, right } => {
-                let right = right.evaluate(environment);
+                let right = self.visit_expression(right, environment);
 
                 match operator.token_type {
                     TokenType::Bang => Value::from_bool(!right.is_truthy()),
@@ -179,7 +164,7 @@ impl Interpretable for Expr {
             }
             Expr::Variable { name } => environment.borrow().get(name),
             Expr::Assign { name, value } => {
-                let value = value.evaluate(environment.clone());
+                let value = self.visit_expression(value, environment.clone());
                 environment.borrow_mut().assign(name, value.clone());
                 value
             }
@@ -188,7 +173,7 @@ impl Interpretable for Expr {
                 operator,
                 right,
             } => {
-                let left = left.evaluate(environment.clone());
+                let left = self.visit_expression(left, environment.clone());
 
                 if operator.token_type == TokenType::Or {
                     if left.is_truthy() {
@@ -198,23 +183,22 @@ impl Interpretable for Expr {
                     return left;
                 }
 
-                right.evaluate(environment)
+                self.visit_expression(right, environment)
             }
             Expr::Call {
                 callee,
                 paren,
                 arguments,
             } => {
-                let callee = callee.evaluate(environment.clone());
+                let callee = self.visit_expression(callee, environment.clone());
 
                 let argument_list: Vec<Value> = arguments
                     .iter()
-                    .map(|a| a.evaluate(environment.clone()))
+                    .map(|a| self.visit_expression(a, environment.clone()))
                     .collect();
 
                 if let Value::Callable(callable) = callee {
-                    // return callable.call(interpreter, &argument_list)
-                    return callable.call();
+                    return callable.call(self, &argument_list);
                 }
 
                 panic!("Syntax error");

@@ -18,8 +18,7 @@ pub fn register_builtins(environment: &mut Environment) {
     );
 }
 
-// fn clock(_: &Interpreter, _: &[Value]) -> Value {
-fn clock() -> Value {
+fn clock(_: &Interpreter, _: &[Value]) -> Value {
     Value::Number(
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
