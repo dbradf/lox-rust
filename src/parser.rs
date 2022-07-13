@@ -24,10 +24,35 @@ impl Parser {
     }
 
     fn declaration(&mut self) -> Stmt {
-        if self.do_match(&[TokenType::Var]) {
+        if self.do_match(&[TokenType::Fun]) {
+            self.function("function")
+        } else if self.do_match(&[TokenType::Var]) {
             self.var_declaration()
         } else {
             self.statement()
+        }
+    }
+
+    fn function(&mut self, kind: &str) -> Stmt {
+        let name = self.consume(TokenType::Identifier, "Expect function name");
+        self.consume(TokenType::LeftParen, "Expect '(' after function name.");
+        let mut parameters = vec![];
+        loop {
+            if parameters.len() >= 255 {
+                eprintln!("Can't have more than 255 parameters.");
+            }
+            parameters.push(self.consume(TokenType::Identifier, "Expect parameter name."));
+            if !self.do_match(&[TokenType::Comma]) {
+                break;
+            }
+        }
+        self.consume(TokenType::RightParen, "Expect ')' after parameters.");
+        self.consume(TokenType::LeftBrace, "Expect '{' before function body.");
+        let body = self.block();
+        Stmt::Function {
+            name,
+            params: parameters,
+            body,
         }
     }
 

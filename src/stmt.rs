@@ -1,11 +1,17 @@
 use crate::{expr::Expr, token::Token};
 
+#[derive(Clone)]
 pub enum Stmt {
     Block {
         statements: Vec<Stmt>,
     },
     Expression {
         expression: Expr,
+    },
+    Function {
+        name: Token,
+        params: Vec<Token>,
+        body: Vec<Stmt>,
     },
     If {
         condition: Expr,

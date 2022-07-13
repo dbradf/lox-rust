@@ -1,7 +1,12 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    built_in::register_builtins, environment::Environment, expr::Expr, stmt::Stmt, token::Value,
+    built_in::register_builtins,
+    environment::{self, Environment},
+    expr::Expr,
+    lox_callable::LoxCallable,
+    stmt::Stmt,
+    token::Value,
     token_type::TokenType,
 };
 
@@ -19,14 +24,19 @@ impl Interpreter {
         }
     }
 
+    pub fn get_globals(&self) -> Rc<RefCell<Environment>> {
+        Rc::new(RefCell::new(self.globals.clone()))
+    }
+
     pub fn interpret(&self, statements: &[Stmt]) {
-        let environment = Rc::new(RefCell::new(self.globals.clone()));
+        // let environment = Rc::new(RefCell::new(self.globals.clone()));
+        let environment = self.get_globals();
         for statement in statements {
             self.visit_statement(statement, environment.clone());
         }
     }
 
-    fn execute_block(&self, statements: &Vec<Stmt>, environment: Rc<RefCell<Environment>>) {
+    pub fn execute_block(&self, statements: &Vec<Stmt>, environment: Rc<RefCell<Environment>>) {
         for statement in statements {
             self.visit_statement(statement, environment.clone());
         }
@@ -73,6 +83,16 @@ impl Interpreter {
                 {
                     self.visit_statement(body, environment.clone());
                 }
+            }
+            Stmt::Function { name, params, body } => {
+                let function = LoxCallable::LoxFunction(Box::new(Stmt::Function {
+                    name: name.clone(),
+                    params: params.clone(),
+                    body: body.clone(),
+                }));
+                environment
+                    .borrow_mut()
+                    .define(name.lexeme.clone(), Value::Callable(function));
             }
         }
     }
