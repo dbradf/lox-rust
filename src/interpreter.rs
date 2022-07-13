@@ -1,26 +1,28 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     environment::Environment, expr::Expr, stmt::Stmt, token::Value, token_type::TokenType,
 };
 
 pub trait Interpreter {
-    fn evaluate(&self, environment: &mut Environment) -> Value;
+    fn evaluate(&self, environment: Rc<RefCell<Environment>>) -> Value;
 }
 
 pub fn interpret(statements: &[Stmt]) {
-    let mut environment = Environment::new(None);
+    let environment = Rc::new(RefCell::new(Environment::new(None)));
     for statement in statements {
-        statement.evaluate(&mut environment);
+        statement.evaluate(environment.clone());
     }
 }
 
-fn execute_block(statements: &Vec<Stmt>, environment: &mut Environment) {
+fn execute_block(statements: &Vec<Stmt>, environment: Rc<RefCell<Environment>>) {
     for statement in statements {
-        statement.evaluate(environment);
+        statement.evaluate(environment.clone());
     }
 }
 
 impl Interpreter for Stmt {
-    fn evaluate(&self, environment: &mut Environment) -> Value {
+    fn evaluate(&self, environment: Rc<RefCell<Environment>>) -> Value {
         match self {
             Stmt::Expression { expression } => {
                 expression.evaluate(environment);
@@ -34,14 +36,14 @@ impl Interpreter for Stmt {
             Stmt::Var { name, initializer } => {
                 let mut value = Value::None;
                 if let Some(init) = initializer {
-                    value = init.evaluate(environment);
+                    value = init.evaluate(environment.clone());
                 }
-                environment.define(name.lexeme.clone(), value);
+                environment.borrow_mut().define(name.lexeme.clone(), value);
                 Value::None
             }
             Stmt::Block { statements } => {
-                let mut new_environment = Environment::new(Some(Box::new(environment.clone())));
-                execute_block(statements, &mut new_environment);
+                let new_environment = Environment::new(Some(environment));
+                execute_block(statements, Rc::new(RefCell::new(new_environment)));
                 Value::None
             }
             Stmt::If {
@@ -49,10 +51,16 @@ impl Interpreter for Stmt {
                 then_branch,
                 else_branch,
             } => {
-                if condition.evaluate(environment).is_truthy() {
+                if condition.evaluate(environment.clone()).is_truthy() {
                     then_branch.evaluate(environment);
                 } else if let Some(else_branch) = else_branch {
                     else_branch.evaluate(environment);
+                }
+                Value::None
+            }
+            Stmt::While { condition, body } => {
+                while condition.evaluate(environment.clone()).is_truthy() {
+                    body.evaluate(environment.clone());
                 }
                 Value::None
             }
@@ -61,14 +69,14 @@ impl Interpreter for Stmt {
 }
 
 impl Interpreter for Expr {
-    fn evaluate(&self, environment: &mut Environment) -> Value {
+    fn evaluate(&self, environment: Rc<RefCell<Environment>>) -> Value {
         match self {
             Expr::Binary {
                 left,
                 operator,
                 right,
             } => {
-                let left = left.evaluate(environment);
+                let left = left.evaluate(environment.clone());
                 let right = right.evaluate(environment);
 
                 match operator.token_type {
@@ -146,10 +154,10 @@ impl Interpreter for Expr {
                     _ => panic!("Invalid syntax"),
                 }
             }
-            Expr::Variable { name } => environment.get(name),
+            Expr::Variable { name } => environment.borrow().get(name),
             Expr::Assign { name, value } => {
-                let value = value.evaluate(environment);
-                environment.assign(name, value.clone());
+                let value = value.evaluate(environment.clone());
+                environment.borrow_mut().assign(name, value.clone());
                 value
             }
             Expr::Logical {
@@ -157,7 +165,7 @@ impl Interpreter for Expr {
                 operator,
                 right,
             } => {
-                let left = left.evaluate(environment);
+                let left = left.evaluate(environment.clone());
 
                 if operator.token_type == TokenType::Or {
                     if left.is_truthy() {

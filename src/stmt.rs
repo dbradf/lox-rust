@@ -15,6 +15,10 @@ pub enum Stmt {
     Print {
         expression: Expr,
     },
+    While {
+        condition: Expr,
+        body: Box<Stmt>,
+    },
     Var {
         name: Token,
         initializer: Option<Expr>,

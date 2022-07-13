@@ -46,16 +46,84 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Stmt {
-        if self.do_match(&[TokenType::If]) {
+        if self.do_match(&[TokenType::For]) {
+            self.for_statement()
+        } else if self.do_match(&[TokenType::If]) {
             self.if_statement()
         } else if self.do_match(&[TokenType::Print]) {
             self.print_statement()
+        } else if self.do_match(&[TokenType::While]) {
+            self.while_statement()
         } else if self.do_match(&[TokenType::LeftBrace]) {
             Stmt::Block {
                 statements: self.block(),
             }
         } else {
             self.expression_statement()
+        }
+    }
+
+    fn for_statement(&mut self) -> Stmt {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'for'.");
+
+        let mut initializer = None;
+        if self.do_match(&[TokenType::Semicolon]) {
+            initializer = None;
+        } else if self.do_match(&[TokenType::Var]) {
+            initializer = Some(self.var_declaration());
+        } else {
+            initializer = Some(self.expression_statement());
+        }
+
+        let mut condition = Expr::Literal {
+            value: Value::from_bool(true),
+        };
+        if !self.do_match(&[TokenType::Semicolon]) {
+            condition = self.expression();
+        }
+        self.consume(TokenType::Semicolon, "Expect ';' after loop condition.");
+
+        let mut increment = None;
+        if !self.do_match(&[TokenType::RightParen]) {
+            increment = Some(self.expression());
+        }
+        self.consume(TokenType::RightParen, "Expect ')' after for clauses.");
+
+        let mut body = self.statement();
+        if let Some(increment) = increment {
+            body = Stmt::Block {
+                statements: vec![
+                    body,
+                    Stmt::Expression {
+                        expression: increment,
+                    },
+                ],
+            };
+        }
+
+        body = Stmt::While {
+            condition,
+            body: Box::new(body),
+        };
+
+        if let Some(initializer) = initializer {
+            body = Stmt::Block {
+                statements: vec![initializer, body],
+            };
+        }
+
+        body
+    }
+
+    fn while_statement(&mut self) -> Stmt {
+        self.consume(TokenType::LeftParen, "Expect '(' after 'while'.");
+        let condition = self.expression();
+        self.consume(TokenType::RightParen, "Expect ')' after condition.");
+        let body = self.statement();
+
+        Stmt::While {
+            condition,
+            body: Box::new(body),
         }
     }
 
