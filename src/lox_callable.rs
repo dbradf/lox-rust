@@ -21,7 +21,7 @@ impl LoxCallable {
             LoxCallable::BuiltIn(callable) => Ok((callable.func)(interpreter, arguments)),
             LoxCallable::LoxFunction(declaration, closure) => match *declaration {
                 Stmt::Function { name, params, body } => {
-                    let environment = closure;
+                    let environment = Environment::new(Some(closure));
                     for (i, argument) in params.iter().enumerate() {
                         environment.define(argument.lexeme.clone(), arguments[i].clone());
                     }
