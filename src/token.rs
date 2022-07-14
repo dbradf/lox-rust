@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{lox_callable::LoxCallable, token_type::TokenType};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Value {
     String(String),
     Number(f64),

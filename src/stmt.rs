@@ -21,6 +21,10 @@ pub enum Stmt {
     Print {
         expression: Expr,
     },
+    Return {
+        keyword: Token,
+        value: Option<Expr>,
+    },
     While {
         condition: Expr,
         body: Box<Stmt>,

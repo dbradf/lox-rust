@@ -77,6 +77,8 @@ impl Parser {
             self.if_statement()
         } else if self.do_match(&[TokenType::Print]) {
             self.print_statement()
+        } else if self.do_match(&[TokenType::Return]) {
+            self.return_statement()
         } else if self.do_match(&[TokenType::While]) {
             self.while_statement()
         } else if self.do_match(&[TokenType::LeftBrace]) {
@@ -86,6 +88,16 @@ impl Parser {
         } else {
             self.expression_statement()
         }
+    }
+
+    fn return_statement(&mut self) -> Stmt {
+        let keyword = self.previous();
+        let mut value = None;
+        if !self.check(&TokenType::Semicolon) {
+            value = Some(self.expression());
+        }
+        self.consume(TokenType::Semicolon, "Expect ';' after return value.");
+        Stmt::Return { keyword, value }
     }
 
     fn for_statement(&mut self) -> Stmt {

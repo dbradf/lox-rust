@@ -1,9 +1,11 @@
-use crate::{interpreter::Interpreter, stmt::Stmt, token::Value};
+use crate::{environment::Environment, interpreter::Interpreter, stmt::Stmt, token::Value};
+use anyhow::Result;
+use std::fmt::Debug;
 
 #[derive(Clone)]
 pub enum LoxCallable {
     BuiltIn(BuiltInFunction),
-    LoxFunction(Box<Stmt>),
+    LoxFunction(Box<Stmt>, Environment),
 }
 
 #[derive(Clone)]
@@ -14,20 +16,18 @@ pub struct BuiltInFunction {
 }
 
 impl LoxCallable {
-    pub fn call(self, interpreter: &Interpreter, arguments: &[Value]) -> Value {
+    pub fn call(self, interpreter: &Interpreter, arguments: &[Value]) -> Result<Value> {
         match self {
-            LoxCallable::BuiltIn(callable) => (callable.func)(interpreter, arguments),
-            LoxCallable::LoxFunction(declaration) => match *declaration {
+            LoxCallable::BuiltIn(callable) => Ok((callable.func)(interpreter, arguments)),
+            LoxCallable::LoxFunction(declaration, closure) => match *declaration {
                 Stmt::Function { name, params, body } => {
-                    let environment = interpreter.get_globals();
+                    let environment = closure;
                     for (i, argument) in params.iter().enumerate() {
-                        environment
-                            .borrow_mut()
-                            .define(argument.lexeme.clone(), arguments[i].clone());
+                        environment.define(argument.lexeme.clone(), arguments[i].clone());
                     }
 
-                    interpreter.execute_block(&body, environment);
-                    Value::None
+                    let result = interpreter.execute_block(&body, environment)?;
+                    Ok(result)
                 }
                 _ => panic!("Syntax error"),
             },
@@ -38,5 +38,14 @@ impl LoxCallable {
 impl PartialEq for LoxCallable {
     fn eq(&self, other: &Self) -> bool {
         false
+    }
+}
+
+impl Debug for LoxCallable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::BuiltIn(arg0) => f.debug_tuple("BuiltIn").finish(),
+            Self::LoxFunction(arg0, arg1) => f.debug_tuple("LoxFunction").finish(),
+        }
     }
 }
