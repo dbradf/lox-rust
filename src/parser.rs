@@ -37,13 +37,15 @@ impl Parser {
         let name = self.consume(TokenType::Identifier, "Expect function name");
         self.consume(TokenType::LeftParen, "Expect '(' after function name.");
         let mut parameters = vec![];
-        loop {
-            if parameters.len() >= 255 {
-                eprintln!("Can't have more than 255 parameters.");
-            }
-            parameters.push(self.consume(TokenType::Identifier, "Expect parameter name."));
-            if !self.do_match(&[TokenType::Comma]) {
-                break;
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                if parameters.len() >= 255 {
+                    eprintln!("Can't have more than 255 parameters.");
+                }
+                parameters.push(self.consume(TokenType::Identifier, "Expect parameter name."));
+                if !self.do_match(&[TokenType::Comma]) {
+                    break;
+                }
             }
         }
         self.consume(TokenType::RightParen, "Expect ')' after parameters.");
